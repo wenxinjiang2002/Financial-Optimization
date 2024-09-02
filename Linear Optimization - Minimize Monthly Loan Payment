@@ -1,0 +1,44 @@
+using JuMP
+using Gurobi
+
+model = Model(Gurobi.Optimizer)# Decision Variables
+@variable(model, y1[0:360] >= 0)  
+@variable(model, y2[0:360] >= 0)  
+@variable(model, y3[0:360] >= 0)  
+
+@variable(model, x1[1:360] >= 0)  
+@variable(model, x2[1:360] >= 0)  
+@variable(model, x3[1:360] >= 0)  
+
+@variable(model, p >= 0)  
+
+model# Initial loan allocation (y_{i,0})
+@constraint(model, y1[0] + y2[0] + y3[0] == 400000)
+
+# payoff constraints
+for t in 1:180
+    @constraint(model, y1[t] == y1[t-1] * (1 + (0.05/12)) - x1[t])
+end
+@constraint(model, y1[180] == 0)
+@constraint(model, x1[181:360] == 0)
+
+for t in 1:240
+    @constraint(model, y2[t] == y2[t-1] * (1 + (0.06/12)) - x2[t])
+end
+@constraint(model, y2[240] == 0)
+@constraint(model, x2[241:360] == 0)
+
+for t in 1:360
+    @constraint(model, y3[t] == y3[t-1] * (1 + (0.07/12)) - x3[t])
+end
+@constraint(model, y3[360] == 0)
+
+# Total monthly payment constraint
+for t in 1:360
+    @constraint(model, x1[t] + x2[t] + x3[t] == p)
+end
+
+# Objective: Minimize the total monthly payment p
+@objective(model, Min, p)
+
+model
